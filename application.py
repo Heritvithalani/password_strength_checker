@@ -2,10 +2,10 @@ from flask import Flask, request, render_template
 from password_strength_checker import check_password_strength, password_feedback
 
 # Initialize the Flask app
-app = Flask(__name__)
+application = Flask(__name__)
 
 # Route for the home page
-@app.route("/", methods=["GET", "POST"])
+@application.route("/", methods=["GET", "POST"])
 def home():
     feedback = ""  # Default feedback is empty
     if request.method == "POST":
@@ -24,4 +24,4 @@ def home():
 
 # Run the app
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    application.run(debug=True, host="0.0.0.0", port=5000)

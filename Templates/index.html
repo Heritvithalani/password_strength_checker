@@ -4,36 +4,188 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Password Strength Checker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
-</head>
-<body class="bg-light">
-    <div class="container py-5">
-        <!-- Page Title -->
-        <h1 class="text-center">Password Strength Checker</h1>
-        
-        <!-- Password Form -->
-        <form method="POST" class="mt-4">
-            <div class="mb-3">
-                <label for="password" class="form-label">Enter Your Password:</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Check Password</button>
-        </form>
+    <style>
+        /* General Styling */
+        body {
+            margin: 0;
+            height: 100vh;
+            background: black;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
 
-        <!-- Feedback Section -->
-        {% if feedback %}
-            <div class="mt-4 alert 
-                {% if 'Weak' in feedback %}
-                    alert-danger
-                {% elif 'Moderate' in feedback %}
-                    alert-warning
-                {% else %}
-                    alert-success
-                {% endif %} 
-                text-center" role="alert">
-                {{ feedback }}
-            </div>
-        {% endif %}
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: white;
+            text-shadow: 0 0 5px #0f0;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid #0f0;
+            animation: typing 2s steps(30, end), blink 0.5s step-end infinite alternate;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            from { border-color: transparent; }
+            to { border-color: #0f0; }
+        }
+
+        input[type="password"] {
+            background: black;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 1em;
+            color: white;
+            outline: none;
+            width: 80%;
+            margin: 0 auto;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="password"]:focus {
+            border-color: #007bff;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-align: left;
+            color: #333;
+            position: relative;
+            bottom: -20px;
+            left: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            border-right: 2px solid white;
+            animation: typing 1.5s steps(30, end), blink 0.5s step-end infinite alternate;
+        }
+
+        .feedback.weak {
+            color: red;
+        }
+
+        .feedback.moderate {
+            color: orange;
+        }
+
+        .feedback.strong {
+            color: green;
+        }
+
+        button {
+            margin-top: 20px;
+            background: #007bff;
+            border: none;
+            color: white;
+            font-size: 1em;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="container">
+        <h1>Password Strength Checker</h1>
+        <form id="password-form">
+            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            <div id="feedback" class="feedback"></div>
+            <button type="submit">Check Strength</button>
+        </form>
     </div>
+
+    <script>
+        // Matrix Rain Background
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width = window.innerWidth;
+        const h = canvas.height = window.innerHeight;
+        const cols = Math.floor(w / 20);
+        const ypos = Array(cols).fill(0);
+
+        const matrixEffect = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#0f0';
+            ctx.font = '15pt monospace';
+
+            ypos.forEach((y, ind) => {
+                const text = String.fromCharCode(Math.random() * 128);
+                const x = ind * 20;
+                ctx.fillText(text, x, y);
+                ypos[ind] = y > h + Math.random() * 10000 ? 0 : y + 20;
+            });
+        };
+
+        setInterval(matrixEffect, 50); // Keep the matrix running continuously
+
+        // Handle password submission via AJAX
+        const form = document.getElementById("password-form");
+        const feedbackDiv = document.getElementById("feedback");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault(); // Prevent form reload
+            const password = document.getElementById("password").value;
+
+            // Make an AJAX request to the server
+            const response = await fetch("/check-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password }),
+            });
+
+            const data = await response.json();
+            feedbackDiv.textContent = data.feedback;
+
+            // Apply feedback styles
+            feedbackDiv.className = "feedback"; // Reset classes
+            if (data.feedback.includes("Too Easy")) {
+                feedbackDiv.classList.add("weak");
+            } else if (data.feedback.includes("Hmm..!")) {
+                feedbackDiv.classList.add("moderate");
+            } else {
+                feedbackDiv.classList.add("strong");
+            }
+        });
+    </script>
 </body>
 </html>
